@@ -16,7 +16,7 @@
 </script>
 
 <svelte:head>
-  <title>Login - Ping CRM</title>
+  <title>Ping CRM</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-indigo-800 p-6">
