@@ -1,0 +1,46 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
+
+jobs:
+  Deploiement:
+    runs-on: ubuntu-latest 
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: 'Baladi/TestCICD.git'
+      - run: sudo apt update 
+      - run: sudo apt-get install rsync -y 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+      - name: Install PHP dependencies
+        uses: "ramsey/composer-install@v1"
+        with:
+          dependency-versions: "locked"
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+      - name: Install JS dependencies 
+        run: npm install
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # Add your SSH private key to GitHub Secrets
+  
+      - name: Deploy to remote server
+        run: |
+          rsync -avz --exclude='.git' --exclude='.github' ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/path/to/your/app
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'cd /path/to/your/app && composer install --optimize-autoloader --no-dev && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache'
+  
+      - name: Restart web server
+        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'sudo systemctl restart nginx'  # Adjust based on your web server
